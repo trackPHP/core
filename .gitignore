@@ -1,0 +1,7 @@
+# Composer dependencies
+/vendor/
+
+# PHPUnit
+.phpunit.xml.cache
+.phpunit.cache
+.phpunit.result.cache
