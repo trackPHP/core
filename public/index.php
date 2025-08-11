@@ -10,10 +10,10 @@ $method = $_SERVER['REQUEST_METHOD'];
 try {
     $response = $router->dispatch($method, $uri);
     echo $response;
-} catch (\TrackPHP\Exceptions\NotFoundException $e) {
+} catch (\TrackPHP\Router\Exceptions\NotFoundException $e) {
     http_response_code(404);
     echo '<h1>404 Not Found</h1>';
-} catch (\TrackPHP\Exceptions\MethodNotAllowedException $e) {
+} catch (\TrackPHP\Router\Exceptions\MethodNotAllowedException $e) {
     http_response_code(405);
     echo '<h1>405 Method Not Allowed</h1>';
 }
