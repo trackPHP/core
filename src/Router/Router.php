@@ -33,7 +33,65 @@ class Router {
         return $route;
     }
 
-    public function match(string $method, string $uri): ?Route
+    public function path(string $name, ?array $values = []): string
+    {
+        $route = $this->getNamedRouteOrFail($name);
+        $this->assertAllParamsProvided($route->paramNames, $values, $name);
+        return $this->buildPath($route->pattern, $route->paramNames, $values);
+    }
+
+    public function match(string $method, string $uri): Route
+    {
+        $route = $this->resolve($method, $uri);
+        if ($route !== null) {
+            return $route;
+        }
+
+        // path matches another verb? → 405
+        $allowed = $this->allowedMethodsFor($uri);
+        if (!empty($allowed)) {
+            throw new MethodNotAllowedException($method, $uri, $allowed);
+        }
+
+        // nothing matches this path at all → 404
+        throw new NotFoundException("No route found for {$method} {$uri}");
+    }
+
+    public function loadRoutes(string $file): void
+    {
+        $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+
+            // Split by whitespace into max 4 parts
+            $parts = preg_split('/\s+/', $line, 4);
+            if (strtoupper($parts[0]) === "RESOURCE") {
+                if (count($parts) < 2) {
+                    throw new \InvalidArgumentException("RESOURCE missing name at {$file}:".($lineno+1));
+                }
+                $resource = strtolower($parts[1]);
+                $this->addRoute('GET', "/{$resource}", "{$resource}#index");
+                $this->addRoute('GET', "/{$resource}/new", "{$resource}#new");
+                $this->addRoute('POST', "/{$resource}", "{$resource}#create");
+                $this->addRoute('GET', "/{$resource}/{id}", "{$resource}#show");
+                $this->addRoute('GET', "/{$resource}/{id}/edit", "{$resource}#edit");
+                $this->addRoute('PATCH', "/{$resource}/{id}", "{$resource}#update");
+                $this->addRoute('PUT', "/{$resource}/{id}", "{$resource}#update", "{$resource}.put");
+                $this->addRoute('DELETE', "/{$resource}/{id}", "{$resource}#destroy");
+            } else {
+                [$method, $pattern, $handler, $name] = array_pad($parts, 4, null);
+
+                $method = strtoupper($method);
+                $this->addRoute($method, $pattern, $handler, $name);
+            }
+        }
+    }
+
+    private function resolve(string $method, string $uri): ?Route
     {
         $method = strtoupper($method);
 
@@ -51,26 +109,6 @@ class Router {
             }
         }
         return null;
-    }
-
-    public function dispatch(string $method, string $uri): string
-    {
-        $route = $this->findRouteOrFail($method, $uri);
-
-        $controller = $this->instantiateController($route->controller); // e.g. "HomeController"
-        $this->assertActionCallable($controller, $route->action);
-
-        // ensure numeric args in order
-        $params = array_values($route->params ?? []);
-
-        return $controller->{$route->action}(...$params);
-    }
-
-    public function path(string $name, ?array $values = []): string
-    {
-        $route = $this->getNamedRouteOrFail($name);
-        $this->assertAllParamsProvided($route->paramNames, $values, $name);
-        return $this->buildPath($route->pattern, $route->paramNames, $values);
     }
 
     private function assertMethodSupported(string $method): void
@@ -133,25 +171,6 @@ class Router {
         return '#^' . $regexPattern . '$#';
     }
 
-    private function findRouteOrFail(string $method, string $uri): Route
-    {
-        $route = $this->match($method, $uri);
-        if ($route !== null) {
-            return $route;
-        }
-
-        // path matches another verb? → 405
-        $allowed = $this->allowedMethodsFor($uri);
-        if (!empty($allowed)) {
-            throw new MethodNotAllowedException(
-                "Method {$method} not allowed for {$uri}"
-            );
-        }
-
-        // nothing matches this path at all → 404
-        throw new NotFoundException("No route found for {$method} {$uri}");
-    }
-
     private function getNamedRouteOrFail(string $name): Route
     {
         $route = $this->namedRoutes[$name] ?? null;
@@ -173,23 +192,6 @@ class Router {
             }
         }
         return array_values(array_unique($allowed));
-    }
-
-    private function instantiateController(string $baseName): object
-    {
-        $class = 'App\\Controllers\\' . $baseName;
-        if (!class_exists($class)) {
-            throw new \RuntimeException("Controller {$baseName} not found");
-        }
-        return new $class();
-    }
-
-    private function assertActionCallable(object $controller, string $action): void
-    {
-        if (!is_callable([$controller, $action])) {
-            $class = get_class($controller);
-            throw new \RuntimeException("Method {$action} not found on {$class}");
-        }
     }
 
     private function assertAllParamsProvided(array $names, array $params, string $routeName): void

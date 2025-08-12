@@ -5,6 +5,8 @@ namespace TrackPHP\Tests\Router;
 use PHPUnit\Framework\TestCase;
 use TrackPHP\Router\Router;
 use TrackPHP\Router\Route;
+use TrackPHP\Router\Exceptions\NotFoundException;
+use TrackPHP\Router\Exceptions\MethodNotAllowedException;
 
 final class RouterTest extends TestCase
 {
@@ -84,12 +86,13 @@ final class RouterTest extends TestCase
         ], $route->params);
     }
 
-    public function test_it_returns_null_for_unmatched_pattern(): void
+    public function test_not_found_exception_when_no_match(): void
     {
+        $this->expectException(NotFoundException::class);
+
         $router = new Router();
         $router->addRoute('GET', '/about', 'pages#about');
-
-        $this->assertNull($router->match('GET', '/not-found'));
+        $router->match('GET', '/not-found');
     }
 
     public function test_it_distinguishes_between_http_methods(): void
@@ -123,10 +126,10 @@ final class RouterTest extends TestCase
 
     public function test_it_treats_trailing_slash_as_different_pattern(): void
     {
+        $this->expectException(NotFoundException::class);
         $router = new Router();
         $router->addRoute('GET', '/about', 'pages#about');
-
-        $this->assertNull($router->match('GET', '/about/')); // if strict
+        $router->match('GET', '/about/');
     }
 
     public function test_it_matches_first_route_on_duplicate_pattern(): void
@@ -153,47 +156,45 @@ final class RouterTest extends TestCase
         $this->assertSame('#^/$#', $route->regexPattern);
     }
 
-    public function test_it_returns_null_for_post_when_only_get_is_registered(): void
+    public function test_it_throws_method_not_allowed_exception(): void
     {
+        $this->expectException(MethodNotAllowedException::class);
         $r = new Router();
         $r->addRoute('GET', '/login', 'auth#form');
-
-        $this->assertNull($r->match('POST', '/login'));
+        $r->match('POST', '/login');
     }
 
-    public function test_it_returns_null_for_get_when_only_post_is_registered(): void
+    public function test_it_returns_not_found_exception_for_post_route_but_get_call(): void
     {
+        $this->expectException(MethodNotAllowedException::class);
         $r = new Router();
         $r->addRoute('POST', '/login', 'auth#submit');
-
-        $this->assertNull($r->match('GET', '/login'));
+        $r->match('GET', '/login');
     }
 
-    public function test_it_returns_null_for_completely_unsupported_method(): void
+    public function test_it_returns_not_found_exception_for_completely_unsupported_method(): void
     {
+        $this->expectException(MethodNotAllowedException::class);
         $r = new Router();
         $r->addRoute('GET', '/anything', 'pages#show');
-
-        $this->assertNull($r->match('PUT', '/anything'));
+        $r->match('PUT', '/anything');
     }
 
-    public function test_it_does_not_match_when_single_param_is_empty(): void
+    public function test_raises_not_found_excpetion_when_single_param_is_empty(): void
     {
+        $this->expectException(NotFoundException::class);
         $r = new Router();
         $r->addRoute('GET', '/posts/{id}', 'posts#show');
 
-        $this->assertNull($r->match('GET', '/posts/'));   // missing id
-        $this->assertNull($r->match('GET', '/posts//'));   // missing id with extra slash
+        $r->match('GET', '/posts//');   // missing id with extra slash
     }
 
     public function test_it_does_not_match_when_any_multi_param_is_empty(): void
     {
+        $this->expectException(NotFoundException::class);
         $r = new Router();
         $r->addRoute('GET', '/posts/{postId}/comments/{commentId}', 'comments#show');
-
-        $this->assertNull($r->match('GET', '/posts//comments/56'));   // missing postId
-        $this->assertNull($r->match('GET', '/posts/42/comments/'));   // missing commentId
-        $this->assertNull($r->match('GET', '/posts/42/comments//'));   // missing commentId with ending slash
+        $r->match('GET', '/posts//comments/56');
     }
 
     public function test_it_generates_path_for_unnamed_static_route() {
