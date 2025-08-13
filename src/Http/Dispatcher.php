@@ -45,8 +45,7 @@ final class Dispatcher
         $action = $route->action;
 
         // Set names for implicit render: app/views/{_controller}/{_action}.php
-        $controller->_controller = $this->snake($route->controller);
-        $controller->_action     = $action;
+        $controller->setControllerAction($this->snake($route->controller), $action);
 
         if (!method_exists($controller, $action)) {
             return (new Response(500))->withBody("Action not found: {$class}::{$action}");

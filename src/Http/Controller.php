@@ -24,6 +24,12 @@ abstract class Controller
         return $this->request->param($key, $default);
     }
 
+    public function setControllerAction(string $controller, string $action): void
+    {
+        $this->_controller = $controller;
+        $this->_action     = $action;
+    }
+
     /** Capture writes to undeclared props (assigns) */
     public function __set(string $name, mixed $value): void
     {
@@ -72,7 +78,7 @@ abstract class Controller
         $path = rtrim((string)TRACKPHP_VIEW_PATH, '/\\')
               . '/' . $this->_controller
               . '/' . $this->_action
-              . '.php';
+              . '.html.php';
 
         if (!is_file($path)) {
             throw new \RuntimeException("View not found: {$path}");
