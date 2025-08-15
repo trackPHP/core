@@ -8,23 +8,13 @@ use TrackPHP\Http\Response;
 
 final class HomeController extends Controller
 {
-    // Returns HTML Response (uses helper)
-    public function index(): Response|string
+    public function index()
     {
-        return $this->html('<h1>Home</h1>');
     }
 
-    // Returns TEXT Response with route param (uses helper)
-    public function greet(): Response|string
+    public function greet()
     {
-        $name = $this->param('name') ?? 'friend';
-        return $this->text("G'day, {$name}!");
-    }
-
-    // Returns a raw string to ensure Dispatcher normalises it to a Response
-    public function raw(): string
-    {
-        return 'raw string body';
+        $this->name = $this->param('name') ?? 'friend';
     }
 }
 

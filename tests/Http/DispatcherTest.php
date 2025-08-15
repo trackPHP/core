@@ -7,6 +7,7 @@ use PHPUnit\Framework\TestCase;
 use TrackPHP\Http\Dispatcher;
 use TrackPHP\Http\Request;
 use TrackPHP\Router\Router;
+use TrackPHP\View\FakeViewRenderer;
 
 final class DispatcherTest extends TestCase
 {
@@ -27,29 +28,34 @@ final class DispatcherTest extends TestCase
         $router = new Router();
         $router->addRoute('GET', '/', 'home#index');
         $router->addRoute('GET', '/hello/{name}', 'home#greet');
-        $router->addRoute('GET', '/raw', 'home#raw');
         return $router;
+    }
+
+    private function makeViewRenderer() {
+        return new FakeViewRenderer();
     }
 
     public function test_it_dispatches_to_controller_action_and_passes_params(): void
     {
         $router = $this->makeRouterWithBasicRoutes();
-        $dispatcher = new Dispatcher($router, '\\TrackPHP\\Tests\\Fixtures');
+        $viewRenderer = $this->makeViewRenderer();
+        $dispatcher = new Dispatcher($router, $viewRenderer, '\\TrackPHP\\Tests\\Fixtures');
 
         $request  = $this->makeRequest('GET', '/hello/Jeff');
         $response = $dispatcher->handle($request);
 
         $this->assertSame(200, $response->status());
-        // text() helper sets text/plain
-        $this->assertSame('text/plain; charset=utf-8', $response->headers()['Content-Type'] ?? null);
-        $this->assertSame("G'day, Jeff!", $response->body());
+        $this->assertSame('<fake>home_controller/greet</fake>', $response->body());
+        $this->assertSame('text/html; charset=utf-8', $response->headers()['Content-Type'] ?? null);
+        $this->assertSame('home_controller/greet', $viewRenderer->lastTemplate);
+        $this->assertSame(['name' => 'Jeff'], $viewRenderer->lastData);
     }
 
     public function test_it_returns_404_when_no_route_matches(): void
     {
         $router = $this->makeRouterWithBasicRoutes();
-        $dispatcher = new Dispatcher($router, '\\TrackPHP\\Tests\\Fixtures');
-
+        $viewRenderer = $this->makeViewRenderer();
+        $dispatcher = new Dispatcher($router, $viewRenderer, '\\TrackPHP\\Tests\\Fixtures');
         $request  = $this->makeRequest('GET', '/missing');
         $response = $dispatcher->handle($request);
 
@@ -59,10 +65,10 @@ final class DispatcherTest extends TestCase
 
     public function test_405_sets_allow_header(): void
     {
-        $router = new Router();
-        $router->addRoute('POST', '/things', 'Home#index'); // only POST
-
-        $dispatcher = new Dispatcher($router, '\\TrackPHP\\Tests\\Fixtures');
+        $router = $this->makeRouterWithBasicRoutes();
+        $router->addRoute('POST', '/things', 'home#things'); // only POST
+        $viewRenderer = $this->makeViewRenderer();
+        $dispatcher = new Dispatcher($router, $viewRenderer, '\\TrackPHP\\Tests\\Fixtures');
 
         $req = $this->makeRequest('GET', '/things'); // wrong method
         $res = $dispatcher->handle($req);
@@ -73,9 +79,10 @@ final class DispatcherTest extends TestCase
 
     public function test_it_returns_500_when_controller_class_is_missing(): void
     {
-        $router = new Router();
+        $router = $this->makeRouterWithBasicRoutes();
         $router->addRoute('GET', '/oops', 'Nope#index'); // Controller class does not exist
-        $dispatcher = new Dispatcher($router, '\\TrackPHP\\Tests\\Fixtures');
+        $viewRenderer = $this->makeViewRenderer();
+        $dispatcher = new Dispatcher($router, $viewRenderer, '\\TrackPHP\\Tests\\Fixtures');
 
         $request  = $this->makeRequest('GET', '/oops');
         $response = $dispatcher->handle($request);
@@ -86,9 +93,10 @@ final class DispatcherTest extends TestCase
 
     public function test_it_returns_500_when_action_is_missing(): void
     {
-        $router = new Router();
+        $router = $this->makeRouterWithBasicRoutes();
         $router->addRoute('GET', '/bad', 'Home#missingAction'); // Action does not exist
-        $dispatcher = new Dispatcher($router, '\\TrackPHP\\Tests\\Fixtures');
+        $viewRenderer = $this->makeViewRenderer();
+        $dispatcher = new Dispatcher($router, $viewRenderer, '\\TrackPHP\\Tests\\Fixtures');
 
         $request  = $this->makeRequest('GET', '/bad');
         $response = $dispatcher->handle($request);
@@ -97,25 +105,12 @@ final class DispatcherTest extends TestCase
         $this->assertStringContainsString('Action not found', $response->body());
     }
 
-    public function test_it_wraps_raw_string_returns_into_response(): void
-    {
-        $router = $this->makeRouterWithBasicRoutes();
-        $dispatcher = new Dispatcher($router, '\\TrackPHP\\Tests\\Fixtures');
-
-        $request  = $this->makeRequest('GET', '/raw');
-        $response = $dispatcher->handle($request);
-
-        $this->assertSame(200, $response->status());
-        $this->assertSame('raw string body', $response->body());
-        // Defaults to HTML unless your Controller helper changed it later
-        $this->assertSame('text/html; charset=utf-8', $response->headers()['Content-Type'] ?? null);
-    }
-
     public function test_405_sets_allow_and_body(): void
     {
-        $router = new Router();
-        $router->addRoute('POST', '/things', 'Home#index');
-        $dispatcher = new Dispatcher($router, '\\TrackPHP\\Tests\\Fixtures');
+        $router = $this->makeRouterWithBasicRoutes();
+        $router->addRoute('POST', '/things', 'things#create');
+        $viewRenderer = $this->makeViewRenderer();
+        $dispatcher = new Dispatcher($router, $viewRenderer, '\\TrackPHP\\Tests\\Fixtures');
 
         $res = $dispatcher->handle($this->makeRequest('GET', '/things'));
 

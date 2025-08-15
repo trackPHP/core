@@ -5,9 +5,8 @@
     "keywords": ["php", "framework", "lightweight", "trackPHP"],
     "license": "MIT",
     "autoload": {
-        "psr-4": {
-            "TrackPHP\\": "src/"
-        }
+      "psr-4": { "TrackPHP\\": "src/" },
+      "files": ["src/Support/helpers.php"]
     },
     "autoload-dev": {
         "psr-4": {

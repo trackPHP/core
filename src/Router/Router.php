@@ -8,12 +8,14 @@ class Router {
 
     private array $routes = [
         'GET' => [],
-        'POST' => []
+        'POST' => [],
+        'PATCH' => [],
+        'DELETE' => []
     ];
     private array $namedRoutes = [];
 
     private const HANDLER_REGEX = '/^([a-z][a-z0-9_]*)#([a-z][a-z0-9_]*)$/i';
-    private const ALLOWED_VERBS = ['GET','POST','PUT','PATCH','DELETE','HEAD','OPTIONS'];
+    private const ALLOWED_VERBS = ['GET','POST','PATCH','DELETE'];
 
     public function addRoute(string $method, string $pattern, string $handler, ?string $name = null): Route
     {
@@ -25,9 +27,9 @@ class Router {
         $regex = $this->compilePattern($pattern);
         $paramNames = $this->extractParamNames($pattern);
 
-        $route = new Route($verb, $pattern, $regex, $controllerClass, $action, $paramNames, []);
+        $route = new Route($verb, $pattern, $regex, $controllerClass, $action, $paramNames);
 
-        $routeName = $name ?? $this->defaultNameFor($controllerClass, $action);
+        $routeName = $name ?? $this->defaultNameFor($controllerWord, $action);
         $this->registerRoute($route, $routeName);
 
         return $route;
@@ -80,7 +82,6 @@ class Router {
                 $this->addRoute('GET', "/{$resource}/{id}", "{$resource}#show");
                 $this->addRoute('GET', "/{$resource}/{id}/edit", "{$resource}#edit");
                 $this->addRoute('PATCH', "/{$resource}/{id}", "{$resource}#update");
-                $this->addRoute('PUT', "/{$resource}/{id}", "{$resource}#update", "{$resource}.put");
                 $this->addRoute('DELETE', "/{$resource}/{id}", "{$resource}#destroy");
             } else {
                 [$method, $pattern, $handler, $name] = array_pad($parts, 4, null);
@@ -94,7 +95,6 @@ class Router {
     private function resolve(string $method, string $uri): ?Route
     {
         $method = strtoupper($method);
-
         foreach ($this->routes[$method] ?? [] as $route) {
             if (preg_match($route->regexPattern, $uri, $m)) {
                 $values = array_map('urldecode', array_slice($m, 1));
@@ -133,10 +133,9 @@ class Router {
         return ucfirst($word) . 'Controller';
     }
 
-    private function defaultNameFor(string $controllerClass, string $action): string
+    private function defaultNameFor(string $controllerWord, string $action): string
     {
-        $base = preg_replace('/Controller$/', '', $controllerClass);
-        return lcfirst($base) . '.' . $action;
+        return lcfirst($controllerWord) . '.' . $action;
     }
 
     private function registerRoute(Route $route, string $name): void

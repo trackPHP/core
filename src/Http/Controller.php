@@ -2,17 +2,20 @@
 declare(strict_types=1);
 
 namespace TrackPHP\Http;
+use TrackPHP\View\ViewRenderer;
 
 abstract class Controller
 {
     private array $__viewData = [];
+    private ?Response $performed = null;
 
     /** Set by the Dispatcher for implicit template lookup */
     protected string $_controller = '';
     protected string $_action     = '';
 
     public function __construct(
-        protected Request $request
+        protected Request $request,
+        protected ViewRenderer $viewRenderer
     ) {}
 
     protected function params() {
@@ -22,12 +25,6 @@ abstract class Controller
     public function param(string $key, mixed $default=null): mixed
     {
         return $this->request->param($key, $default);
-    }
-
-    public function setControllerAction(string $controller, string $action): void
-    {
-        $this->_controller = $controller;
-        $this->_action     = $action;
     }
 
     /** Capture writes to undeclared props (assigns) */
@@ -65,33 +62,39 @@ abstract class Controller
         return $this->__viewData;
     }
 
-    /** Convention-only render: app/views/{controller}/{action}.php */
-    public function render(): Response
+    public function render(string $template, array $locals = []): Response
     {
-        if (!defined('TRACKPHP_VIEW_PATH')) {
-            throw new \RuntimeException('TRACKPHP_VIEW_PATH is not defined.');
-        }
-        if ($this->_controller === '' || $this->_action === '') {
-            throw new \RuntimeException('Controller/action not set for implicit render.');
-        }
-
-        $path = rtrim((string)TRACKPHP_VIEW_PATH, '/\\')
-              . '/' . $this->_controller
-              . '/' . $this->_action
-              . '.html.php';
-
-        if (!is_file($path)) {
-            throw new \RuntimeException("View not found: {$path}");
-        }
-
-        ob_start();
-        // expose assigns as $vars
-        extract($this->__viewData, EXTR_SKIP);
-        include $path;
-        $body = (string)ob_get_clean();
-
-        return (new Response())->withBody($body);
+        $html = $this->viewRenderer->render($template, array_merge($this->viewData(), $locals));
+        $response  = (new Response())->withBody($html);
+        $this->performed = $response;
+        return $response;
     }
 
+    public function redirectTo(string $url, int $status = 302): Response
+    {
+        $response = (new Response($status))
+            ->withHeader('Location', $url)
+            ->withBody('');
+        $this->performed = $response;
+        return $response;
+    }
+
+    public function json(mixed $data, int $status = 200): Response
+    {
+        $response = (new Response($status, ['Content-Type' => 'application/json']))
+            ->withBody(json_encode($data, JSON_UNESCAPED_UNICODE));
+        $this->performed = $response;
+        return $response;
+    }
+
+    public function hasPerformed(): bool
+    {
+        return $this->performed instanceof Response;
+    }
+
+    public function performedResponse(): ?Response
+    {
+        return $this->performed;
+    }
 }
 

@@ -4,18 +4,20 @@ declare(strict_types=1);
 use TrackPHP\Http\Request;
 use TrackPHP\Http\Dispatcher;
 use TrackPHP\Router\Router;
+use TrackPHP\View\ViewCompiler;
+use TrackPHP\View\CacheViewRenderer;
 
 require __DIR__ . '/../vendor/autoload.php';
 define('TRACKPHP_APP_PATH', dirname(__DIR__));
 define('TRACKPHP_VIEW_PATH', TRACKPHP_APP_PATH . '/app/views');
+define('TRACKPHP_CACHE_VIEW_PATH', TRACKPHP_APP_PATH . '/storage/views');
 
 $router = new Router();
 $router->loadRoutes(__DIR__ . '/../config/routes.txt');
 $request = Request::capture();
-$dispatcher = new Dispatcher($router, '\\App\\Controllers');
-$response   = $dispatcher->handle($request);
-http_response_code($response->status());
-foreach ($response->headers() as $name => $value) {
-    header($name . ': ' . $value, true);
-}
-echo $response->body();
+$viewCompiler = new ViewCompiler();
+$viewRenderer = new CacheViewRenderer($viewCompiler, TRACKPHP_VIEW_PATH, TRACKPHP_CACHE_VIEW_PATH);
+
+$dispatcher = new Dispatcher($router, $viewRenderer, '\\App\\Controllers');
+$response = $dispatcher->handle($request);
+$response->send();

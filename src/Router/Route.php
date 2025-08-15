@@ -11,14 +11,6 @@ class Route {
       public string $controller,
       public string $action,
       public array $paramNames,
-      public array $params
-    ) {
-        $this->method = $method;
-        $this->pattern = $pattern;
-        $this->regexPattern = $regexPattern;
-        $this->controller = $controller;
-        $this->action = $action;
-        $this->paramNames = $paramNames;
-        $this->params = $params;
-    }
+      public array $params = []
+    ) {}
 }

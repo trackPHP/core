@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace TrackPHP\Http;
 
 use TrackPHP\Router\Router;
+use TrackPHP\View\ViewRenderer;
 use TrackPHP\Router\Exceptions\NotFoundException;
 use TrackPHP\Router\Exceptions\MethodNotAllowedException;
 
@@ -11,7 +12,7 @@ final class Dispatcher
 {
     public function __construct(
         private Router $router,
-        // App controllers live here by convention (blueprint can override)
+        private ViewRenderer $viewRenderer,
         private string $controllerNamespace = '\\App\\Controllers'
     ) {}
 
@@ -41,18 +42,25 @@ final class Dispatcher
             return (new Response(500))->withBody("Controller not found: {$class}");
         }
 
-        $controller = new $class($request);
+        $controller = new $class($request, $this->viewRenderer);
         $action = $route->action;
-
-        // Set names for implicit render: app/views/{_controller}/{_action}.php
-        $controller->setControllerAction($this->snake($route->controller), $action);
 
         if (!method_exists($controller, $action)) {
             return (new Response(500))->withBody("Action not found: {$class}::{$action}");
         }
 
-        $controller->{$action}();
-        return $controller->render();
+        $result = $controller->{$action}();
+
+        if ($result instanceof Response) {
+            return $result;
+        }
+        if ($controller->hasPerformed()) {
+            $performed = $controller->performedResponse();
+            return $performed;
+        }
+
+        $viewName = $this->snake($route->controller) . DIRECTORY_SEPARATOR . $action;
+        return $controller->render($viewName);
     }
 
     private function snake(string $s): string

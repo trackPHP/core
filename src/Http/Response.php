@@ -59,4 +59,13 @@ final class Response
         $r = $this->withBody($json ?? 'null')->withStatus($status);
         return $r->withHeader('Content-Type', 'application/json; charset=utf-8');
     }
+
+    public function send(): void
+    {
+        http_response_code($this->status);
+        foreach ($this->headers as $name => $value) {
+            header($name . ': ' . $value, true);
+        }
+        echo $this->body;
+    }
 }
