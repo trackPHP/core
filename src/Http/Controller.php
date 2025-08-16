@@ -56,7 +56,6 @@ abstract class Controller
         }
     }
 
-    /** Expose assigns for renderer/tests */
     protected function viewData(): array
     {
         return $this->__viewData;

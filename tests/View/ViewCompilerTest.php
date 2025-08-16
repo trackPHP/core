@@ -20,22 +20,19 @@ final class ViewCompilerTest extends TestCase
         return $this->c->compile($tpl);
     }
 
-    /** 1) Escaped interpolation: {{ $name }} -> <?= safeEscape($name) ?> */
-    public function test_compiles_escaped_interpolation(): void
+    public function test_compiles_escaped_output(): void
     {
         $out = $this->compile('Hello, {{ $name }}!');
         $this->assertStringContainsString('<?= safeEscape($name) ?>', $out);
     }
 
-    /** 2) Raw interpolation: {!! $html !!} -> <?= $html ?> (no escaping) */
-    public function test_compiles_raw_interpolation(): void
+    public function test_compiles_raw_output(): void
     {
         $out = $this->compile('X {!! $html !!} Y');
         $this->assertStringContainsString('<?= $html ?>', $out);
         $this->assertStringNotContainsString('safeEscape($html)', $out);
     }
 
-    /** 3) Whitespace tolerance around expressions */
     public function test_whitespace_tolerance(): void
     {
         $out = $this->compile('Hello, {{    $name   }}!');
@@ -44,14 +41,12 @@ final class ViewCompilerTest extends TestCase
         $this->assertStringContainsString('<?= safeEscape($name) ?>', $out);
     }
 
-    /** 4) Comments stripped: {{-- hidden --}} removed entirely */
-    public function test_strips_blade_style_comments(): void
+    public function test_strips_template_comments(): void
     {
         $out = $this->compile('A {{-- hidden --}} B');
         $this->assertSame('A  B', $out);
     }
 
-    /** 5) Literal braces via @{{ ... }} are preserved as {{ ... }} (not compiled) */
     public function test_literal_braces_not_compiled(): void
     {
         $out = $this->compile('X @{{ $notInterpolated }} Y');
@@ -59,14 +54,12 @@ final class ViewCompilerTest extends TestCase
         $this->assertStringNotContainsString('safeEscape($notInterpolated)', $out);
     }
 
-    /** 6) @php ... @endphp passthrough to <?php ... ?> */
     public function test_php_block_passthrough(): void
     {
         $out = $this->compile('Start @php $x = 1 + 2; @endphp End');
         $this->assertStringContainsString('<?php $x = 1 + 2; ?>', $out);
     }
 
-    /** 7) No compile inside @php blocks */
     public function test_no_compile_inside_php_blocks(): void
     {
         $out = $this->compile('@php $x = "{{ $name }}"; @endphp');
@@ -75,15 +68,13 @@ final class ViewCompilerTest extends TestCase
         $this->assertStringNotContainsString('safeEscape($name)', $out);
     }
 
-    /** 8) Multiple {{ ... }} on one line compile independently (non-greedy) */
-    public function test_multiple_interpolations_non_greedy(): void
+    public function test_multiple_escapes_non_greedy(): void
     {
         $out = $this->compile('Hi {{ $a }} and {{ $b }}!');
         $this->assertStringContainsString('safeEscape($a)', $out);
         $this->assertStringContainsString('safeEscape($b)', $out);
     }
 
-    /** 9) Mixed content order compiles correctly (comments, literals, escaped, raw, php) */
     public function test_mixed_content_sequence(): void
     {
         $tpl = <<<TPL
@@ -102,14 +93,12 @@ TPL;
         $this->assertStringContainsString('<?php $x = 42; ?>', $out);           // php block
     }
 
-    /** 10) SECURITY: {{ "<img onerror=1>" }} compiles via safeEscape (prevents XSS at runtime) */
     public function test_security_escaped_path_selected(): void
     {
         $out = $this->compile('{{ "<img src=x onerror=1>" }}');
         $this->assertStringContainsString('<?= safeEscape("<img src=x onerror=1>") ?>', $out);
     }
 
-    /** 11) SECURITY: {!! "<em>ok</em>" !!} compiles to raw echo (developer opt-out) */
     public function test_security_raw_opt_out_selected(): void
     {
         $out = $this->compile('{!! "<em>ok</em>" !!}');
@@ -134,7 +123,6 @@ PHP;
         $this->assertStringNotContainsString('safeEscape($name)', $out);
     }
 
-    /** Short echo tag should be preserved as-is */
     public function test_short_echo_tag_preserved(): void
     {
         $tpl = 'Value: <?= $name ?>';
@@ -144,7 +132,6 @@ PHP;
         $this->assertStringNotContainsString('safeEscape($name)', $out);
     }
 
-    /** @php block (single line): braces inside PHP string must NOT compile */
     public function test_no_compile_inside_atphp_block_single_line(): void
     {
         $tpl = '@php $x = "{{ $name }}"; @endphp';
@@ -154,7 +141,6 @@ PHP;
         $this->assertStringNotContainsString('safeEscape($name)', $out);
     }
 
-    /** @php block (multi-line): braces inside PHP string must NOT compile */
     public function test_no_compile_inside_atphp_block_multiline(): void
     {
         $tpl = <<<'TPL'
@@ -177,17 +163,15 @@ PHP;
         $this->assertStringNotContainsString('safeEscape($name)', $out);
     }
 
-    /** Comments inside PHP should NOT be stripped */
     public function test_comments_inside_php_are_not_stripped(): void
     {
-        $tpl = '<?php $s = "{{-- not a real blade comment in PHP string --}}"; ?>';
+        $tpl = '<?php $s = "{{-- not a real template comment in PHP string --}}"; ?>';
         $out = $this->compile($tpl);
 
         $this->assertSame($tpl, $out);
         $this->assertStringNotContainsString('safeEscape(', $out);
     }
 
-    /** Literal markers inside PHP should not be touched */
     public function test_literals_inside_php_not_touched(): void
     {
         $tpl = '<?php $s = "@{{ stays literal }} and @{!! stays raw !!}"; ?>';
@@ -196,7 +180,6 @@ PHP;
         $this->assertSame($tpl, $out);
     }
 
-    /** Mixed: outside PHP should compile; inside PHP should not */
     public function test_mixed_php_and_template_only_outside_compiles(): void
     {
         $tpl = <<<'TPL'
@@ -214,4 +197,125 @@ TPL;
         $this->assertStringContainsString('<?php $debug = "{{ $shouldNotCompile }}"; ?>', $out);
         $this->assertStringNotContainsString('safeEscape($shouldNotCompile)', $out);
     }
+
+    public function test_useLayout_compiles_with_single_quotes(): void
+    {
+        $out = $this->compile("@useLayout ('layouts/app')");
+        $this->assertSame("<?php \$this->useLayout('layouts/app'); ?>", $out);
+    }
+
+    public function test_useLayout_compiles_with_double_quotes(): void
+    {
+        $out = $this->compile('@useLayout( "layouts/main" )');
+        $this->assertSame("<?php \$this->useLayout('layouts/main'); ?>", $out);
+    }
+
+    public function test_slot_compiles_with_single_quotes(): void
+    {
+        $out = $this->compile("@slot('title')");
+        $this->assertSame("<?= \$this->slot('title') ?>", $out);
+    }
+
+    public function test_slot_compiles_with_double_quotes(): void
+    {
+        $out = $this->compile('@slot  ( "title"   )');
+        $this->assertSame("<?= \$this->slot('title') ?>", $out);
+    }
+
+    public function test_fill_block_compiles_to_start_and_end_calls_single_line(): void
+    {
+        $out = $this->compile("@fill('sidebar')<p>X</p>@endfill");
+
+        $this->assertStringContainsString("<?php \$this->start('sidebar'); ?>", $out);
+        $this->assertStringContainsString('<p>X</p>', $out);
+        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+    }
+
+    public function test_fill_block_compiles_to_start_and_end_calls_multiline(): void
+    {
+        $src = <<<TPL
+@fill("main-content")
+<div>
+  <h2>Hello</h2>
+  <p>World</p>
+</div>
+@endfill
+TPL;
+
+        $out = $this->compile($src);
+
+        $this->assertStringContainsString("<?php \$this->start('main-content'); ?>", $out);
+        $this->assertStringContainsString("<h2>Hello</h2>", $out);
+        $this->assertStringContainsString("<p>World</p>", $out);
+        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+    }
+
+    public function test_fill_directive_with_slot_and_value(): void
+    {
+        $out = $this->compile("@fill('heading', '<h1>Track PHP</h1>')");
+
+        $this->assertStringContainsString("<?php \$this->start('heading'); ?>", $out);
+        $this->assertStringContainsString('<h1>Track PHP</h1>', $out);
+        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+    }
+
+    public function test_fill_directive_with_slot_and_value_using_double_quotes(): void
+    {
+        $out = $this->compile('@fill("heading", "<h1>Track PHP</h1>")');
+
+        $this->assertStringContainsString("<?php \$this->start('heading'); ?>", $out);
+        $this->assertStringContainsString('<h1>Track PHP</h1>', $out);
+        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+    }
+
+    public function test_layout_slot_fill_are_not_compiled_inside_php_blocks(): void
+    {
+        $src = <<<PHPBLOCK
+@php
+  // Inside raw PHP; leave as-is
+  @useLayout('layouts/ignored')
+  @fill('ignored') echo "nope"; @endfill
+  @slot('ignored')
+@endphp
+PHPBLOCK;
+
+        $out = $this->compile($src);
+
+        // Should still contain the literal directives (i.e., untouched)
+        $this->assertStringContainsString("@useLayout('layouts/ignored')", $out);
+        $this->assertStringContainsString("@fill('ignored')", $out);
+        $this->assertStringContainsString("@endfill", $out);
+        $this->assertStringContainsString("@slot('ignored')", $out);
+    }
+
+    public function test_directives_allow_double_quoted_names_too(): void
+    {
+        $out = $this->compile('@slot ("subtitle") @fill( "subtitle")text@endfill');
+        $this->assertStringContainsString("<?= \$this->slot('subtitle') ?>", $out);
+        $this->assertStringContainsString("<?php \$this->start('subtitle'); ?>", $out);
+        $this->assertStringContainsString("text", $out);
+        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+    }
+
+    public function test_fill_single_line_allows_commas_and_parentheses(): void
+    {
+        $out = $this->compile("@fill('title', 'Hello, world (v2)')");
+        $this->assertStringContainsString("<?php \$this->start('title'); ?>", $out);
+        $this->assertStringContainsString("Hello, world (v2)", $out);
+        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+    }
+
+    public function test_fill_single_line_allows_escaped_single_quote_in_single_quoted_content(): void
+    {
+        $out = $this->compile("@fill('title', 'Bob\\'s Page')");
+        // Expect the compiled content to contain Bob's Page with the escape removed
+        $this->assertStringContainsString("Bob's Page", $out);
+    }
+
+    public function test_fill_single_line_allows_escaped_double_quote_in_double_quoted_content(): void
+    {
+        $out = $this->compile('@fill("title", "He said: \\"Hello\\"")');
+        $this->assertStringContainsString('He said: "Hello"', $out);
+    }
+
 }

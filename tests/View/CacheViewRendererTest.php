@@ -53,7 +53,6 @@ final class CacheViewRendererTest extends TestCase
         return new CacheViewRenderer(new ViewCompiler(), $this->viewsDir, $this->cacheDir);
     }
 
-    /** 1) Renders a view and applies escaping and raw output correctly */
     public function test_renders_view_with_escaping_and_raw(): void
     {
         $tpl = <<<'PHP'
@@ -186,4 +185,173 @@ PHP;
 
         $this->assertStringContainsString('こんにちは 🌸', $html);
     }
+
+    public function test_it_applies_layout_and_inserts_filled_title_slot(): void
+    {
+        // Arrange: create layout + child
+        @mkdir($this->viewsDir . '/layouts', 0777, true);
+
+        file_put_contents(
+            $this->viewsDir . '/layouts/app.html.php',
+            "<html><head><title>@slot('title')</title></head><body>@slot('body')</body></html>"
+        );
+
+        file_put_contents(
+            $this->viewsDir . '/home.index.html.php',
+            "@useLayout('layouts/app')\n@fill('title')My Page@endfill"
+        );
+
+        $renderer = $this->makeRenderer();
+
+        $html = $renderer->render('home.index');
+
+        // Assert: title filled, body empty for now (we’ll test body next)
+        $this->assertSame(
+            '<html><head><title>My Page</title></head><body></body></html>',
+            trim($html)
+        );
+    }
+
+    public function test_it_renders_body_when_filled_explicitly(): void
+    {
+        @mkdir($this->viewsDir . '/layouts', 0777, true);
+
+        file_put_contents(
+            $this->viewsDir . '/layouts/app.html.php',
+            "<html><head><title>@slot('title')</title></head><body>@slot('body')</body></html>"
+        );
+
+        file_put_contents(
+            $this->viewsDir . '/home.index.html.php',
+            "@useLayout('layouts/app')\n@fill('title')T@endfill\n@fill('body')<p>Hello</p>@endfill"
+        );
+
+        $renderer = $this->makeRenderer();
+
+        $html = $renderer->render('home.index');
+
+        $this->assertSame(
+            '<html><head><title>T</title></head><body><p>Hello</p></body></html>',
+            trim($html)
+        );
+    }
+
+    public function test_single_line_fill_renders_into_layout_slot(): void
+    {
+        @mkdir($this->viewsDir . '/layouts', 0777, true);
+
+        file_put_contents(
+            $this->viewsDir . '/layouts/app.html.php',
+            "<html><head><title>@slot('title')</title></head><body>@slot('body')</body></html>"
+        );
+
+        file_put_contents(
+            $this->viewsDir . '/home.index.html.php',
+            "@useLayout('layouts/app')\n@fill('title', 'Quick Title')"
+        );
+
+        $renderer = $this->makeRenderer();
+
+        $html = $renderer->render('home.index');
+
+        $this->assertSame(
+            '<html><head><title>Quick Title</title></head><body></body></html>',
+            trim($html)
+        );
+    }
+
+    public function test_single_line_fill_with_escaped_variable(): void
+    {
+        @mkdir($this->viewsDir . '/layouts', 0777, true);
+
+        file_put_contents(
+            $this->viewsDir . '/layouts/app.html.php',
+            "<html><head><title>@slot('title')</title></head><body>@slot('body')</body></html>"
+        );
+
+        file_put_contents(
+            $this->viewsDir . '/home.index.html.php',
+            "@useLayout('layouts/app')\n@fill('title', '{{ \$name }}')"
+        );
+
+        $renderer = $this->makeRenderer();
+
+        $html = $renderer->render('home.index', ['name' => 'Jeff']);
+
+        $this->assertSame(
+            '<html><head><title>Jeff</title></head><body></body></html>',
+            trim($html)
+        );
+    }
+
+    public function test_single_line_fill_with_commas_parentheses_and_quotes_renders_correctly(): void
+    {
+        @mkdir($this->viewsDir . '/layouts', 0777, true);
+
+        file_put_contents(
+            $this->viewsDir . '/layouts/app.html.php',
+            "<title>@slot('title')</title>"
+        );
+
+        file_put_contents(
+            $this->viewsDir . '/home.index.html.php',
+            "@useLayout('layouts/app')\n@fill('title', 'Hello, world (v2) — Bob\\'s \"Test\"')"
+        );
+
+        $renderer = $this->makeRenderer();
+
+        $html = $renderer->render('home.index', []);
+        $this->assertSame('<title>Hello, world (v2) — Bob\'s "Test"</title>', trim($html));
+    }
+
+    public function test_free_output_becomes_implicit_body_when_no_explicit_body_fill(): void
+    {
+        @mkdir($this->viewsDir . '/layouts', 0777, true);
+
+        file_put_contents(
+            $this->viewsDir . '/layouts/app.html.php',
+            "<html><head><title>@slot('title')</title></head><body>@slot('body')</body></html>"
+        );
+
+        file_put_contents(
+            $this->viewsDir . '/home.index.html.php',
+            "@useLayout('layouts/app')\n@fill('title')T@endfill\n<p>Hello implicit body</p>"
+        );
+
+        $renderer = $this->makeRenderer();
+
+        $html = $renderer->render('home.index');
+        $this->assertSame(
+            '<html><head><title>T</title></head><body><p>Hello implicit body</p></body></html>',
+            trim($html)
+        );
+    }
+
+    public function test_explicit_body_fill_wins_and_free_output_is_discarded(): void
+    {
+        @mkdir($this->viewsDir . '/layouts', 0777, true);
+
+        file_put_contents(
+            $this->viewsDir . '/layouts/app.html.php',
+            "<html><head><title>@slot('title')</title></head><body>@slot('body')</body></html>"
+        );
+
+        file_put_contents(
+            $this->viewsDir . '/home.index.html.php',
+            "@useLayout('layouts/app')\n" .
+            "@fill('title')T@endfill\n" .
+            "<p>SHOULD_BE_DISCARDED</p>\n" .
+            "@fill('body')<p>Explicit Body</p>@endfill\n" .
+            "<p>ALSO_DISCARDED</p>\n"
+        );
+
+        $renderer = $this->makeRenderer();
+
+        $html = $renderer->render('home.index');
+        $this->assertSame(
+            '<html><head><title>T</title></head><body><p>Explicit Body</p></body></html>',
+            trim($html)
+        );
+    }
+
 }
