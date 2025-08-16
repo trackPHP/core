@@ -1,4 +1,5 @@
 <?php
+
 namespace TrackPHP\Version;
 
 final class Version
@@ -7,20 +8,28 @@ final class Version
 
     public static function current(): string
     {
-        if (self::versionIsCached()) return self::cachedVersion();
-        else return self::versionFromFile();
+        if (self::versionIsCached()) {
+            return self::cachedVersion();
+        } else {
+            return self::versionFromFile();
+        }
     }
 
-    private static function versionIsCached() {
-        if (self::$cached !== null) return true;
+    private static function versionIsCached()
+    {
+        if (self::$cached !== null) {
+            return true;
+        }
         return false;
     }
 
-    private static function cachedVersion() {
+    private static function cachedVersion()
+    {
         return self::$cached;
     }
 
-    private static function versionFromFile() {
+    private static function versionFromFile()
+    {
         $file = dirname(__DIR__, 2) . '/VERSION';
 
         if (!is_file($file)) {

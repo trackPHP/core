@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\View;
@@ -79,8 +80,9 @@ final class ViewCompiler
 
     private function compileEscapedEchos(string $code): string
     {
-        $out = preg_replace_callback('/\{\{\s*(.+?)\s*\}\}/s',
-            static fn($m) => '<?= safeEscape(' . $m[1] . ') ?>',
+        $out = preg_replace_callback(
+            '/\{\{\s*(.+?)\s*\}\}/s',
+            static fn ($m) => '<?= safeEscape(' . $m[1] . ') ?>',
             $code
         );
 
@@ -89,8 +91,9 @@ final class ViewCompiler
 
     private function compileRawEchos(string $code): string
     {
-        $out = preg_replace_callback('/\{\!\!\s*(.+?)\s*\!\!\}/s',
-            static fn($m) => '<?= ' . $m[1] . ' ?>',
+        $out = preg_replace_callback(
+            '/\{\!\!\s*(.+?)\s*\!\!\}/s',
+            static fn ($m) => '<?= ' . $m[1] . ' ?>',
             $code
         );
 
@@ -118,7 +121,7 @@ final class ViewCompiler
                 $name = $m[2];
                 $content = $m[3];
                 // Unescape: \' -> ', \\ -> \
-                $content = str_replace(["\\'", "\\\\"], ["'", "\\"], $content);
+                $content = str_replace(["\\'", '\\\\'], ["'", '\\'], $content);
                 return "<?php \$this->start('{$name}'); ?>{$content}<?php \$this->end(); ?>";
             },
             $code

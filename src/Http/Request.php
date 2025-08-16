@@ -2,7 +2,8 @@
 
 namespace TrackPHP\Http;
 
-class Request {
+class Request
+{
     private array $routeParams = [];
     private array $params = [];
 
@@ -50,43 +51,77 @@ class Request {
             : ($post ?? []);
 
         return new self(
-            $method, $path, $fullPath, $originalUrl,
-            $queryParams, $requestParams, $cookies,
-            $headers, $body, $ip
+            $method,
+            $path,
+            $fullPath,
+            $originalUrl,
+            $queryParams,
+            $requestParams,
+            $cookies,
+            $headers,
+            $body,
+            $ip
         );
     }
 
     // Core
-    public function method(): string { return $this->method; }
-    public function path(): string { return $this->path; }
-    public function fullPath(): string { return $this->fullPath; }
-    public function originalUrl(): string { return $this->originalUrl; }
+    public function method(): string
+    {
+        return $this->method;
+    }
+    public function path(): string
+    {
+        return $this->path;
+    }
+    public function fullPath(): string
+    {
+        return $this->fullPath;
+    }
+    public function originalUrl(): string
+    {
+        return $this->originalUrl;
+    }
 
     // Params
-    public function queryParams(): array { return $this->queryParams; }
-    public function requestParams(): array { return $this->requestParams; }
+    public function queryParams(): array
+    {
+        return $this->queryParams;
+    }
+    public function requestParams(): array
+    {
+        return $this->requestParams;
+    }
 
-    public function query(string $key, mixed $default=null): mixed
+    public function query(string $key, mixed $default = null): mixed
     {
         return array_key_exists($key, $this->queryParams) ? $this->queryParams[$key] : $default;
     }
 
-    public function request(string $key, mixed $default=null): mixed
+    public function request(string $key, mixed $default = null): mixed
     {
         return array_key_exists($key, $this->requestParams) ? $this->requestParams[$key] : $default;
     }
 
     // Headers & body
-    public function headers(): array { return $this->headers; }
+    public function headers(): array
+    {
+        return $this->headers;
+    }
 
-    public function header(string $name, ?string $default=null): ?string
+    public function header(string $name, ?string $default = null): ?string
     {
         $v = self::headerValue($this->headers, $name);
         return $v !== null ? $v : $default;
     }
 
-    public function contentType(): ?string { return $this->header('Content-Type'); }
-    public function mediaType(): ?string { return self::mediaTypeFrom($this->contentType()); }
+    public function contentType(): ?string
+    {
+        return $this->header('Content-Type');
+    }
+    public function mediaType(): ?string
+    {
+        return self::mediaTypeFrom($this->contentType());
+    }
 
     public function contentLength(): int
     {
@@ -97,8 +132,14 @@ class Request {
         return strlen($this->body);
     }
 
-    public function body(): string { return $this->body; }
-    public function rawPost(): string { return $this->body; }
+    public function body(): string
+    {
+        return $this->body;
+    }
+    public function rawPost(): string
+    {
+        return $this->body;
+    }
 
     public function json(): ?array
     {
@@ -111,7 +152,10 @@ class Request {
     }
 
     // Env-ish helpers
-    public function ip(): ?string { return $this->ip; }
+    public function ip(): ?string
+    {
+        return $this->ip;
+    }
 
     public function isAjax(): bool
     {
@@ -132,7 +176,9 @@ class Request {
     public function port(): int
     {
         $port = parse_url($this->originalUrl, PHP_URL_PORT);
-        if ($port !== null) return (int)$port;
+        if ($port !== null) {
+            return (int)$port;
+        }
         return $this->scheme() === 'https' ? 443 : 80;
     }
 
@@ -141,7 +187,10 @@ class Request {
         return str_starts_with($this->originalUrl, 'https://') ? 'https' : 'http';
     }
 
-    public function cookies(): array { return $this->cookies; }
+    public function cookies(): array
+    {
+        return $this->cookies;
+    }
 
     public function cookie(string $name, mixed $default = null): mixed
     {
@@ -156,10 +205,10 @@ class Request {
         return $clone;
     }
 
-    public function withRouteParams(array $params): self
+    public function withRouteParams(array $routeParams): self
     {
         $clone = clone $this;
-        $clone->routeParams = $params;
+        $clone->routeParams = $routeParams;
         $clone->recomputeParams();
         return $clone;
     }
@@ -169,7 +218,7 @@ class Request {
         return $this->params;
     }
 
-    public function param(string $key, mixed $default=null): mixed
+    public function param(string $key, mixed $default = null): mixed
     {
         return array_key_exists($key, $this->params) ? $this->params[$key] : $default;
     }
@@ -191,10 +240,16 @@ class Request {
 
     private static function normalisePath(string $path): string
     {
-        if ($path === '') $path = '/';
-        if ($path[0] !== '/') $path = '/' . $path;    // ensure leading slash
+        if ($path === '') {
+            $path = '/';
+        }
+        if ($path[0] !== '/') {
+            $path = '/' . $path;
+        }    // ensure leading slash
         $path = preg_replace('#/+#', '/', $path) ?? $path;
-        if ($path !== '/') $path = rtrim($path, '/');
+        if ($path !== '/') {
+            $path = rtrim($path, '/');
+        }
         return $path;
     }
 
@@ -231,7 +286,9 @@ class Request {
 
     private static function mediaTypeFrom(?string $contentType): ?string
     {
-        if (!$contentType) return null;
+        if (!$contentType) {
+            return null;
+        }
         $semi = strpos($contentType, ';');
         $type = $semi === false ? $contentType : substr($contentType, 0, $semi);
         return strtolower(trim($type));

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Tests\Http;
@@ -249,11 +250,11 @@ final class RequestTest extends TestCase
         $this->assertSame('POST', $req2->method());
 
         // Other fields identical
-        $this->assertSame($req->path(),        $req2->path());
-        $this->assertSame($req->fullPath(),    $req2->fullPath());
+        $this->assertSame($req->path(), $req2->path());
+        $this->assertSame($req->fullPath(), $req2->fullPath());
         $this->assertSame($req->originalUrl(), $req2->originalUrl());
-        $this->assertSame($req->headers(),     $req2->headers());
-        $this->assertSame($req->params(),      $req2->params());
+        $this->assertSame($req->headers(), $req2->headers());
+        $this->assertSame($req->params(), $req2->params());
 
         // Distinct objects
         $this->assertNotSame($req, $req2);
@@ -269,8 +270,11 @@ final class RequestTest extends TestCase
     {
         // http, implicit 80
         $reqHttp = \TrackPHP\Http\Request::create(
-            ['REQUEST_METHOD'=>'GET','REQUEST_URI'=>'/','HTTPS'=>'off','HTTP_HOST'=>'example.test'],
-            [], [], [], ''
+            ['REQUEST_METHOD' => 'GET','REQUEST_URI' => '/','HTTPS' => 'off','HTTP_HOST' => 'example.test'],
+            [],
+            [],
+            [],
+            ''
         );
         $this->assertSame('http', $reqHttp->scheme());
         $this->assertSame('example.test', $reqHttp->host());
@@ -279,8 +283,11 @@ final class RequestTest extends TestCase
 
         // https, implicit 443
         $reqHttps = \TrackPHP\Http\Request::create(
-            ['REQUEST_METHOD'=>'GET','REQUEST_URI'=>'/','HTTPS'=>'on','HTTP_HOST'=>'secure.test'],
-            [], [], [], ''
+            ['REQUEST_METHOD' => 'GET','REQUEST_URI' => '/','HTTPS' => 'on','HTTP_HOST' => 'secure.test'],
+            [],
+            [],
+            [],
+            ''
         );
         $this->assertSame('https', $reqHttps->scheme());
         $this->assertSame('secure.test', $reqHttps->host());
@@ -289,8 +296,11 @@ final class RequestTest extends TestCase
 
         // explicit non-standard port
         $req8080 = \TrackPHP\Http\Request::create(
-            ['REQUEST_METHOD'=>'GET','REQUEST_URI'=>'/path?q=1','HTTPS'=>'off','HTTP_HOST'=>'api.test:8080'],
-            [], [], [], ''
+            ['REQUEST_METHOD' => 'GET','REQUEST_URI' => '/path?q=1','HTTPS' => 'off','HTTP_HOST' => 'api.test:8080'],
+            [],
+            [],
+            [],
+            ''
         );
         $this->assertSame('http', $req8080->scheme());
         $this->assertSame('api.test', $req8080->host());
@@ -388,8 +398,11 @@ final class RequestTest extends TestCase
     {
         // Case A: Content-Type missing -> mediaType null, json() null
         $reqA = \TrackPHP\Http\Request::create(
-            ['REQUEST_METHOD'=>'POST','REQUEST_URI'=>'/x','HTTPS'=>'off','HTTP_HOST'=>'example.test'],
-            [], [], [], '{"ok":true}'
+            ['REQUEST_METHOD' => 'POST','REQUEST_URI' => '/x','HTTPS' => 'off','HTTP_HOST' => 'example.test'],
+            [],
+            [],
+            [],
+            '{"ok":true}'
         );
         $this->assertNull($reqA->contentType());
         $this->assertNull($reqA->mediaType());
@@ -397,8 +410,11 @@ final class RequestTest extends TestCase
 
         // Case B: Content-Type present but not JSON -> json() null
         $reqB = \TrackPHP\Http\Request::create(
-            ['REQUEST_METHOD'=>'POST','REQUEST_URI'=>'/x','HTTPS'=>'off','HTTP_HOST'=>'example.test','CONTENT_TYPE'=>'text/plain'],
-            [], [], [], '{"ok":true}'
+            ['REQUEST_METHOD' => 'POST','REQUEST_URI' => '/x','HTTPS' => 'off','HTTP_HOST' => 'example.test','CONTENT_TYPE' => 'text/plain'],
+            [],
+            [],
+            [],
+            '{"ok":true}'
         );
         $this->assertSame('text/plain', $reqB->contentType());
         $this->assertSame('text/plain', $reqB->mediaType());
@@ -406,8 +422,11 @@ final class RequestTest extends TestCase
 
         // Case C: JSON Content-Type but invalid JSON -> json() null, requestParams empty
         $reqC = \TrackPHP\Http\Request::create(
-            ['REQUEST_METHOD'=>'POST','REQUEST_URI'=>'/x','HTTPS'=>'off','HTTP_HOST'=>'example.test','CONTENT_TYPE'=>'application/json; charset=utf-8'],
-            [], [], [], '{invalid json}'
+            ['REQUEST_METHOD' => 'POST','REQUEST_URI' => '/x','HTTPS' => 'off','HTTP_HOST' => 'example.test','CONTENT_TYPE' => 'application/json; charset=utf-8'],
+            [],
+            [],
+            [],
+            '{invalid json}'
         );
         $this->assertSame('application/json', $reqC->mediaType());
         $this->assertNull($reqC->json());
@@ -532,7 +551,7 @@ final class RequestTest extends TestCase
         // Immutability
         $this->assertNotSame($req, $req2);
         $this->assertSame($query, $req->queryParams(), 'Original unchanged');
-        $this->assertSame($body,  $req->requestParams(), 'Original unchanged');
+        $this->assertSame($body, $req->requestParams(), 'Original unchanged');
 
         // Merge precedence: query < body < route
         $this->assertSame(
@@ -564,4 +583,3 @@ final class RequestTest extends TestCase
     }
 
 }
-

@@ -1,10 +1,8 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\View;
-
-use TrackPHP\Support\HtmlSafe;
-use TrackPHP\View\ViewRenderer;
 
 class FakeViewRenderer implements ViewRenderer
 {

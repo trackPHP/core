@@ -1,12 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Tests\View;
 
 use PHPUnit\Framework\TestCase;
-use TrackPHP\View\ViewRenderer;
-use TrackPHP\View\CacheViewRenderer;
-use TrackPHP\View\ViewCompiler;
+use TrackPHP\View\{ViewRenderer, CacheViewRenderer, ViewCompiler};
+use TrackPHP\View\Exceptions\ViewNotFoundException;
 
 final class CacheViewRendererTest extends TestCase
 {
@@ -155,9 +155,23 @@ PHP;
 
     public function test_missing_view_throws(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(ViewNotFoundException::class);
         $this->expectExceptionMessage('View not found');
         $this->makeRenderer()->render('users/missing', []);
+    }
+
+    public function test_missing_layout_throws(): void
+    {
+        $this->expectException(ViewNotFoundException::class);
+        $template = 'users/show';
+        $view = $this->viewsDir . DIRECTORY_SEPARATOR . $template . '.html.php';
+        file_put_contents(
+            $view,
+            "@useLayout('layouts/app')\n@fill('title')My Page@endfill"
+        );
+
+        $r = $this->makeRenderer();
+        $r->render($template);
     }
 
     /** 7) Different folders with same basename compile to distinct cache files */

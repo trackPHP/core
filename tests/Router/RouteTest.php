@@ -28,4 +28,3 @@ final class RouteTest extends TestCase
         $this->assertSame(['id' => '42'], $route->params);
     }
 }
-

@@ -1,11 +1,12 @@
 <?php
 
 namespace TrackPHP\Router;
+
 use TrackPHP\Router\Exceptions\NotFoundException;
 use TrackPHP\Router\Exceptions\MethodNotAllowedException;
 
-class Router {
-
+class Router
+{
     private array $routes = [
         'GET' => [],
         'POST' => [],
@@ -42,11 +43,11 @@ class Router {
         return $this->buildPath($route->pattern, $route->paramNames, $values);
     }
 
-    public function match(string $method, string $uri): Route
+    public function match(string $method, string $uri): RouteMatch
     {
-        $route = $this->resolve($method, $uri);
-        if ($route !== null) {
-            return $route;
+        $match = $this->resolve($method, $uri);
+        if ($match !== null) {
+            return $match;
         }
 
         // path matches another verb? → 405
@@ -71,9 +72,9 @@ class Router {
 
             // Split by whitespace into max 4 parts
             $parts = preg_split('/\s+/', $line, 4);
-            if (strtoupper($parts[0]) === "RESOURCE") {
+            if (strtoupper($parts[0]) === 'RESOURCE') {
                 if (count($parts) < 2) {
-                    throw new \InvalidArgumentException("RESOURCE missing name at {$file}:".($lineno+1));
+                    throw new \InvalidArgumentException("RESOURCE missing name at {$file}:".($lineno + 1));
                 }
                 $resource = strtolower($parts[1]);
                 $this->addRoute('GET', "/{$resource}", "{$resource}#index");
@@ -92,7 +93,7 @@ class Router {
         }
     }
 
-    private function resolve(string $method, string $uri): ?Route
+    private function resolve(string $method, string $uri): ?RouteMatch
     {
         $method = strtoupper($method);
         foreach ($this->routes[$method] ?? [] as $route) {
@@ -103,9 +104,8 @@ class Router {
                     throw new \RuntimeException("Parameter count mismatch for {$route->pattern}");
                 }
 
-                $bound = clone $route;
-                $bound->params = array_combine($route->paramNames, $values);
-                return $bound;
+                $params = array_combine($route->paramNames, $values);
+                return new RouteMatch($route, $params);
             }
         }
         return null;

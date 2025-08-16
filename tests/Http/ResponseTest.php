@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Tests;
@@ -91,7 +92,7 @@ final class ResponseTest extends TestCase
 
     public function test_withoutHeader_removes_header_case_insensitively(): void
     {
-        $r1 = (new Response())->withHeader('X-Test','one')->withHeader('Content-Type','text/plain');
+        $r1 = (new Response())->withHeader('X-Test', 'one')->withHeader('Content-Type', 'text/plain');
         $r2 = $r1->withoutHeader('x-test');
         $r3 = $r2->withoutHeader('CONTENT-TYPE');
 
@@ -104,7 +105,7 @@ final class ResponseTest extends TestCase
 
     public function test_withJson_sets_header_and_body_and_status(): void
     {
-        $r = (new Response())->withJson(['a'=>1], 201);
+        $r = (new Response())->withJson(['a' => 1], 201);
         $this->assertSame(201, $r->status());
         $this->assertSame('application/json; charset=utf-8', $r->headers()['Content-Type'] ?? null);
         $this->assertSame('{"a":1}', $r->body());

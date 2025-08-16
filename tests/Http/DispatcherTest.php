@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Tests\Http;
@@ -31,7 +32,8 @@ final class DispatcherTest extends TestCase
         return $router;
     }
 
-    private function makeViewRenderer() {
+    private function makeViewRenderer()
+    {
         return new FakeViewRenderer();
     }
 
@@ -74,7 +76,7 @@ final class DispatcherTest extends TestCase
         $res = $dispatcher->handle($req);
 
         $this->assertSame(405, $res->status());
-        $this->assertSame('POST', $res->headers()['Allow'] ?? null);
+        $this->assertSame('POST', $res->headers()['Allow']);
     }
 
     public function test_it_returns_500_when_controller_class_is_missing(): void

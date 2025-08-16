@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Tests\View;
@@ -228,7 +229,7 @@ TPL;
 
         $this->assertStringContainsString("<?php \$this->start('sidebar'); ?>", $out);
         $this->assertStringContainsString('<p>X</p>', $out);
-        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+        $this->assertStringContainsString('<?php $this->end(); ?>', $out);
     }
 
     public function test_fill_block_compiles_to_start_and_end_calls_multiline(): void
@@ -245,9 +246,9 @@ TPL;
         $out = $this->compile($src);
 
         $this->assertStringContainsString("<?php \$this->start('main-content'); ?>", $out);
-        $this->assertStringContainsString("<h2>Hello</h2>", $out);
-        $this->assertStringContainsString("<p>World</p>", $out);
-        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+        $this->assertStringContainsString('<h2>Hello</h2>', $out);
+        $this->assertStringContainsString('<p>World</p>', $out);
+        $this->assertStringContainsString('<?php $this->end(); ?>', $out);
     }
 
     public function test_fill_directive_with_slot_and_value(): void
@@ -256,7 +257,7 @@ TPL;
 
         $this->assertStringContainsString("<?php \$this->start('heading'); ?>", $out);
         $this->assertStringContainsString('<h1>Track PHP</h1>', $out);
-        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+        $this->assertStringContainsString('<?php $this->end(); ?>', $out);
     }
 
     public function test_fill_directive_with_slot_and_value_using_double_quotes(): void
@@ -265,7 +266,7 @@ TPL;
 
         $this->assertStringContainsString("<?php \$this->start('heading'); ?>", $out);
         $this->assertStringContainsString('<h1>Track PHP</h1>', $out);
-        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+        $this->assertStringContainsString('<?php $this->end(); ?>', $out);
     }
 
     public function test_layout_slot_fill_are_not_compiled_inside_php_blocks(): void
@@ -284,7 +285,7 @@ PHPBLOCK;
         // Should still contain the literal directives (i.e., untouched)
         $this->assertStringContainsString("@useLayout('layouts/ignored')", $out);
         $this->assertStringContainsString("@fill('ignored')", $out);
-        $this->assertStringContainsString("@endfill", $out);
+        $this->assertStringContainsString('@endfill', $out);
         $this->assertStringContainsString("@slot('ignored')", $out);
     }
 
@@ -293,16 +294,16 @@ PHPBLOCK;
         $out = $this->compile('@slot ("subtitle") @fill( "subtitle")text@endfill');
         $this->assertStringContainsString("<?= \$this->slot('subtitle') ?>", $out);
         $this->assertStringContainsString("<?php \$this->start('subtitle'); ?>", $out);
-        $this->assertStringContainsString("text", $out);
-        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+        $this->assertStringContainsString('text', $out);
+        $this->assertStringContainsString('<?php $this->end(); ?>', $out);
     }
 
     public function test_fill_single_line_allows_commas_and_parentheses(): void
     {
         $out = $this->compile("@fill('title', 'Hello, world (v2)')");
         $this->assertStringContainsString("<?php \$this->start('title'); ?>", $out);
-        $this->assertStringContainsString("Hello, world (v2)", $out);
-        $this->assertStringContainsString("<?php \$this->end(); ?>", $out);
+        $this->assertStringContainsString('Hello, world (v2)', $out);
+        $this->assertStringContainsString('<?php $this->end(); ?>', $out);
     }
 
     public function test_fill_single_line_allows_escaped_single_quote_in_single_quoted_content(): void

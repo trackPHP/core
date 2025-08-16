@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Tests\Http;
@@ -6,7 +7,6 @@ namespace TrackPHP\Tests\Http;
 use PHPUnit\Framework\TestCase;
 use TrackPHP\Http\Controller;
 use TrackPHP\Http\Request;
-use TrackPHP\Http\Response;
 use TrackPHP\View\FakeViewRenderer;
 
 final class ControllerAssignsTest extends TestCase
@@ -33,7 +33,7 @@ final class ControllerAssignsTest extends TestCase
     public function test_viewData_is_passed_to_view(): void
     {
         $req = $this->makeRequest();
-        $controller = new class($req, $this->viewRenderer) extends Controller {};
+        $controller = new class ($req, $this->viewRenderer) extends Controller {};
 
         // Simulate action code
         $controller->greeting = 'Hi';
@@ -48,7 +48,7 @@ final class ControllerAssignsTest extends TestCase
     public function test_it_redirects(): void
     {
         $req = $this->makeRequest();
-        $controller = new class($req, $this->viewRenderer) extends Controller {};
+        $controller = new class ($req, $this->viewRenderer) extends Controller {};
         $response = $controller->redirectTo('/home');
 
         $this->assertSame(302, $response->status());
@@ -58,35 +58,17 @@ final class ControllerAssignsTest extends TestCase
     public function test_it_outputs_json(): void
     {
         $req = $this->makeRequest();
-        $controller = new class($req, $this->viewRenderer) extends Controller {};
+        $controller = new class ($req, $this->viewRenderer) extends Controller {};
         $response = $controller->json(['ok' => 1, 'name' => 'Jeff']);
 
         $this->assertSame(200, $response->status());
         $this->assertSame('{"ok":1,"name":"Jeff"}', $response->body());
     }
 
-    public function test_internal_props_are_not_exposed_to_view(): void
-    {
-        $req = $this->makeRequest();
-        $controller = new class($req, $this->viewRenderer) extends Controller {};
-        // These are internal and should NOT appear in viewData()
-        $controller->_hidden = 'hide me';
-        $controller->_stillHidden = 'still hiding';
-
-        // Regular assign should appear
-        $controller->title = 'Hello';
-
-        $response = $controller->render('fake/show');
-        $this->assertSame('fake/show', $this->viewRenderer->lastTemplate);
-        $this->assertSame(['title' => 'Hello'], $this->viewRenderer->lastData);
-        $this->assertArrayNotHasKey('_hidden', $this->viewRenderer->lastData);
-        $this->assertArrayNotHasKey('_stillHidden', $this->viewRenderer->lastData);
-    }
-
     public function test_render_marks_render_as_performed(): void
     {
         $req = $this->makeRequest();
-        $controller = new class($req, $this->viewRenderer) extends Controller {};
+        $controller = new class ($req, $this->viewRenderer) extends Controller {};
         $response = $controller->render('fake/show');
         $this->assertSame(200, $response->status());
         $this->assertTrue($controller->hasPerformed());
@@ -96,7 +78,7 @@ final class ControllerAssignsTest extends TestCase
     public function test_magic_get_isset_unset_behaviour(): void
     {
         $req = $this->makeRequest();
-        $controller = new class($req, $this->viewRenderer) extends Controller {};
+        $controller = new class ($req, $this->viewRenderer) extends Controller {};
 
         // Not set yet
         $this->assertNull($controller->flashMessage);
@@ -111,10 +93,5 @@ final class ControllerAssignsTest extends TestCase
         unset($controller->flashMessage);
         $this->assertNull($controller->flashMessage);
         $this->assertFalse(isset($controller->flashMessage));
-
-        // Underscored keys are ignored by __set/__get/__isset
-        $controller->_secret = 'nope';
-        $this->assertNull($controller->_secret);
-        $this->assertFalse(isset($controller->_secret));
     }
 }

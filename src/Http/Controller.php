@@ -1,28 +1,28 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Http;
+
 use TrackPHP\View\ViewRenderer;
 
 abstract class Controller
 {
-    private array $__viewData = [];
+    private array $viewBag = [];
     private ?Response $performed = null;
-
-    /** Set by the Dispatcher for implicit template lookup */
-    protected string $_controller = '';
-    protected string $_action     = '';
 
     public function __construct(
         protected Request $request,
         protected ViewRenderer $viewRenderer
-    ) {}
+    ) {
+    }
 
-    protected function params() {
+    protected function params()
+    {
         return $this->request->params();
     }
 
-    public function param(string $key, mixed $default=null): mixed
+    public function param(string $key, mixed $default = null): mixed
     {
         return $this->request->param($key, $default);
     }
@@ -30,35 +30,28 @@ abstract class Controller
     /** Capture writes to undeclared props (assigns) */
     public function __set(string $name, mixed $value): void
     {
-        if ($name !== '' && $name[0] !== '_') {
-            $this->__viewData[$name] = $value;
-        }
+        $this->viewBag[$name] = $value;
     }
 
     /** Allow reads from undeclared props */
     public function __get(string $name): mixed
     {
-        if ($name !== '' && $name[0] !== '_') {
-            return $this->__viewData[$name] ?? null;
-        }
-        return null;
+        return $this->viewBag[$name] ?? null;
     }
 
     public function __isset(string $name): bool
     {
-        return ($name !== '' && $name[0] !== '_') && array_key_exists($name, $this->__viewData);
+        return array_key_exists($name, $this->viewBag);
     }
 
     public function __unset(string $name): void
     {
-        if ($name !== '' && $name[0] !== '_') {
-            unset($this->__viewData[$name]);
-        }
+        unset($this->viewBag[$name]);
     }
 
     protected function viewData(): array
     {
-        return $this->__viewData;
+        return $this->viewBag;
     }
 
     public function render(string $template, array $locals = []): Response
@@ -96,4 +89,3 @@ abstract class Controller
         return $this->performed;
     }
 }
-

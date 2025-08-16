@@ -1,13 +1,13 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\View;
-
-use TrackPHP\Support\HtmlSafe;
-use TrackPHP\View\ViewRenderer;
+use TrackPHP\View\Exceptions\ViewNotFoundException;
 
 class CacheViewRenderer implements ViewRenderer
 {
+    private const VIEW_EXT = '.html.php';
     private array $sections = [];
     private array $stack = [];
     private ?string $parentLayout = null;
@@ -26,31 +26,17 @@ class CacheViewRenderer implements ViewRenderer
 
     public function render(string $template, array $data = []): string
     {
-        $fullPathTemplate = $this->viewsPath . DIRECTORY_SEPARATOR . $template . '.html.php';
-        if (!is_file($fullPathTemplate)) {
-            throw new \RuntimeException("View not found: {$fullPathTemplate}");
-        }
-
-        $cache = $this->cacheFileFor($fullPathTemplate);
-        $this->compileIfNeeded($fullPathTemplate, $cache);
-
+        $cache = $this->prepareTemplate($template);
         $html = $this->bufferOutput($cache, $data);
-        if (!isset($this->sections['body'])) {
-            $trimmed = trim($html);
-            if ($trimmed !== '') {
-                $this->sections['body'] = $html;
-            }
-        }
+        $this->captureImplicitBody($html);
 
         while ($this->parentLayout !== null) {
-            $layoutTemplate = $this->viewsPath . DIRECTORY_SEPARATOR . $this->parentLayout . '.html.php';
+            $layoutCache = $this->prepareTemplate($this->parentLayout);
             $this->parentLayout = null;
-
-            $layoutCache = $this->cacheFileFor($layoutTemplate);
-            $this->compileIfNeeded($layoutTemplate, $layoutCache);
 
             // Rendering the layout will use @slot() placeholders
             $html = $this->bufferOutput($layoutCache, $data);
+            $this->captureImplicitBody($html);
         }
 
         return $html;
@@ -77,6 +63,36 @@ class CacheViewRenderer implements ViewRenderer
     {
         return $this->sections[$name] ?? $default;
     }
+
+    private function resolve(string $template): string
+    {
+        return $this->viewsPath . DIRECTORY_SEPARATOR . $template . self::VIEW_EXT;
+    }
+
+    private function prepareTemplate(string $template): string
+    {
+        $fullPath = $this->resolve($template);
+
+        if (!is_file($fullPath)) {
+            throw new ViewNotFoundException($fullPath);
+        }
+
+        $cache = $this->cacheFileFor($fullPath);
+        $this->compileIfNeeded($fullPath, $cache);
+
+        return $cache; // return path to compiled cache file
+    }
+
+    private function captureImplicitBody(string $html): void
+    {
+        if (!isset($this->sections['body'])) {
+            $trimmed = trim($html);
+            if ($trimmed !== '') {
+                $this->sections['body'] = $html;
+            }
+        }
+    }
+
 
     private function compileIfNeeded(string $fullPathTemplate, string $cache): void
     {

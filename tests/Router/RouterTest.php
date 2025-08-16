@@ -3,10 +3,8 @@
 namespace TrackPHP\Tests\Router;
 
 use PHPUnit\Framework\TestCase;
-use TrackPHP\Router\Router;
-use TrackPHP\Router\Route;
-use TrackPHP\Router\Exceptions\NotFoundException;
-use TrackPHP\Router\Exceptions\MethodNotAllowedException;
+use TrackPHP\Router\{Route, Router, RouteMatch};
+use TrackPHP\Router\Exceptions\{NotFoundException, MethodNotAllowedException};
 
 final class RouterTest extends TestCase
 {
@@ -24,15 +22,15 @@ final class RouterTest extends TestCase
         $router = new Router();
         $router->addRoute('GET', '/', 'home#index');
 
-        $route = $router->match('GET', '/');
+        $match = $router->match('GET', '/');
 
-        $this->assertInstanceOf(Route::class, $route);
-        $this->assertSame('GET', $route->method);
-        $this->assertSame('/', $route->pattern);
-        $this->assertSame('#^/$#', $route->regexPattern);
-        $this->assertSame('HomeController', $route->controller);
-        $this->assertSame('index', $route->action);
-        $this->assertSame([], $route->params);
+        $this->assertInstanceOf(RouteMatch::class, $match);
+        $this->assertSame('GET', $match->route->method);
+        $this->assertSame('/', $match->route->pattern);
+        $this->assertSame('#^/$#', $match->route->regexPattern);
+        $this->assertSame('HomeController', $match->route->controller);
+        $this->assertSame('index', $match->route->action);
+        $this->assertSame([], $match->params);
     }
 
     public function test_it_registers_a_get_route_with_no_params(): void
@@ -40,15 +38,15 @@ final class RouterTest extends TestCase
         $router = new Router();
         $router->addRoute('GET', '/home', 'home#index');
 
-        $route = $router->match('GET', '/home');
+        $match = $router->match('GET', '/home');
 
-        $this->assertInstanceOf(Route::class, $route);
-        $this->assertSame('GET', $route->method);
-        $this->assertSame('/home', $route->pattern);
-        $this->assertSame('#^/home$#', $route->regexPattern);
-        $this->assertSame('HomeController', $route->controller);
-        $this->assertSame('index', $route->action);
-        $this->assertSame([], $route->params);
+        $this->assertInstanceOf(RouteMatch::class, $match);
+        $this->assertSame('GET', $match->route->method);
+        $this->assertSame('/home', $match->route->pattern);
+        $this->assertSame('#^/home$#', $match->route->regexPattern);
+        $this->assertSame('HomeController', $match->route->controller);
+        $this->assertSame('index', $match->route->action);
+        $this->assertSame([], $match->params);
     }
 
     public function test_it_matches_route_with_single_parameter(): void
@@ -56,15 +54,15 @@ final class RouterTest extends TestCase
         $router = new Router();
         $router->addRoute('GET', '/posts/{postId}', 'posts#show');
 
-        $route = $router->match('GET', '/posts/42');
+        $match = $router->match('GET', '/posts/42');
 
-        $this->assertInstanceOf(Route::class, $route);
-        $this->assertSame('GET', $route->method);
-        $this->assertSame('/posts/{postId}', $route->pattern);
-        $this->assertSame('#^/posts/([^/]+)$#', $route->regexPattern);
-        $this->assertSame('PostsController', $route->controller);
-        $this->assertSame('show', $route->action);
-        $this->assertSame(['postId' => '42'], $route->params);
+        $this->assertInstanceOf(RouteMatch::class, $match);
+        $this->assertSame('GET', $match->route->method);
+        $this->assertSame('/posts/{postId}', $match->route->pattern);
+        $this->assertSame('#^/posts/([^/]+)$#', $match->route->regexPattern);
+        $this->assertSame('PostsController', $match->route->controller);
+        $this->assertSame('show', $match->route->action);
+        $this->assertSame(['postId' => '42'], $match->params);
     }
 
     public function test_it_matches_dynamic_route_with_multiple_params(): void
@@ -72,18 +70,18 @@ final class RouterTest extends TestCase
         $router = new Router();
         $router->addRoute('GET', '/posts/{postId}/comments/{commentId}', 'comments#show');
 
-        $route = $router->match('GET', '/posts/42/comments/56');
+        $match = $router->match('GET', '/posts/42/comments/56');
 
-        $this->assertInstanceOf(Route::class, $route);
-        $this->assertSame('GET', $route->method);
-        $this->assertSame('/posts/{postId}/comments/{commentId}', $route->pattern);
-        $this->assertSame('#^/posts/([^/]+)/comments/([^/]+)$#', $route->regexPattern);
-        $this->assertSame('CommentsController', $route->controller);
-        $this->assertSame('show', $route->action);
+        $this->assertInstanceOf(RouteMatch::class, $match);
+        $this->assertSame('GET', $match->route->method);
+        $this->assertSame('/posts/{postId}/comments/{commentId}', $match->route->pattern);
+        $this->assertSame('#^/posts/([^/]+)/comments/([^/]+)$#', $match->route->regexPattern);
+        $this->assertSame('CommentsController', $match->route->controller);
+        $this->assertSame('show', $match->route->action);
         $this->assertSame([
             'postId' => '42',
             'commentId' => '56'
-        ], $route->params);
+        ], $match->params);
     }
 
     public function test_not_found_exception_when_no_match(): void
@@ -101,11 +99,11 @@ final class RouterTest extends TestCase
         $router->addRoute('GET', '/login', 'auth#form');
         $router->addRoute('POST', '/login', 'auth#submit');
 
-        $getRoute = $router->match('GET', '/login');
-        $postRoute = $router->match('POST', '/login');
+        $getMatch = $router->match('GET', '/login');
+        $postMatch = $router->match('POST', '/login');
 
-        $this->assertSame('form', $getRoute->action);
-        $this->assertSame('submit', $postRoute->action);
+        $this->assertSame('form', $getMatch->route->action);
+        $this->assertSame('submit', $postMatch->route->action);
     }
 
     public function test_it_throws_exception_for_invalid_handler_string(): void
@@ -138,9 +136,9 @@ final class RouterTest extends TestCase
         $router->addRoute('GET', '/home', 'pages#first');
         $router->addRoute('GET', '/home', 'pages#second');
 
-        $route = $router->match('GET', '/home');
+        $match = $router->match('GET', '/home');
 
-        $this->assertSame('first', $route->action);
+        $this->assertSame('first', $match->route->action);
     }
 
     public function test_it_handles_root_route(): void
@@ -148,12 +146,12 @@ final class RouterTest extends TestCase
         $r = new Router();
         $r->addRoute('GET', '/', 'home#index');
 
-        $route = $r->match('GET', '/');
+        $match = $r->match('GET', '/');
 
-        $this->assertInstanceOf(Route::class, $route);
-        $this->assertSame('HomeController', $route->controller);
-        $this->assertSame('index', $route->action);
-        $this->assertSame('#^/$#', $route->regexPattern);
+        $this->assertInstanceOf(RouteMatch::class, $match);
+        $this->assertSame('HomeController', $match->route->controller);
+        $this->assertSame('index', $match->route->action);
+        $this->assertSame('#^/$#', $match->route->regexPattern);
     }
 
     public function test_it_throws_method_not_allowed_exception(): void
@@ -197,38 +195,44 @@ final class RouterTest extends TestCase
         $r->match('GET', '/posts//comments/56');
     }
 
-    public function test_it_generates_path_for_unnamed_static_route() {
+    public function test_it_generates_path_for_unnamed_static_route()
+    {
         $router = new Router();
         $router->addRoute('GET', '/now', 'staticPages#now');
         $this->assertSame('/now', $router->path('staticPages.now'));
     }
 
-    public function test_it_generates_path_for_named_static_route() {
+    public function test_it_generates_path_for_named_static_route()
+    {
         $router = new Router();
         $router->addRoute('GET', '/about', 'pages#about', 'custom');
         $this->assertSame('/about', $router->path('custom'));
     }
 
-    public function test_it_generates_path_for_dynamic_route() {
+    public function test_it_generates_path_for_dynamic_route()
+    {
         $router = new Router();
         $router->addRoute('GET', '/post/{id}', 'post#show');
-        $this->assertSame('/post/1', $router->path('post.show', ['id'=>1]));
+        $this->assertSame('/post/1', $router->path('post.show', ['id' => 1]));
     }
 
-    public function test_it_generates_path_for_dynamic_route_with_multiple_params() {
+    public function test_it_generates_path_for_dynamic_route_with_multiple_params()
+    {
         $router = new Router();
         $router->addRoute('GET', '/post/{post}/comments/{comment}', 'comments#show');
-        $this->assertSame('/post/1/comments/2', $router->path('comments.show', ['post'=>1, 'comment'=>2]));
+        $this->assertSame('/post/1/comments/2', $router->path('comments.show', ['post' => 1, 'comment' => 2]));
     }
 
-    public function test_it_throws_exception_if_named_route_does_not_exist() {
+    public function test_it_throws_exception_if_named_route_does_not_exist()
+    {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("No route found with name: nonexistent");
+        $this->expectExceptionMessage('No route found with name: nonexistent');
         $router = new Router();
         $router->path('nonexistent');
     }
 
-    public function test_it_throws_exception_if_not_enough_parameters_provided() {
+    public function test_it_throws_exception_if_not_enough_parameters_provided()
+    {
         $router = new Router();
         $router->addRoute('GET', '/posts/{postId}/comments/{commentId}', 'comments#show', name: 'comment_show');
 
@@ -237,7 +241,8 @@ final class RouterTest extends TestCase
         $router->path('comment_show', ['postId' => 1]);
     }
 
-    public function test_it_replaces_all_placeholders_correctly() {
+    public function test_it_replaces_all_placeholders_correctly()
+    {
         $router = new Router();
         $router->addRoute('GET', '/posts/{postId}/comments/{commentId}', 'comments#show');
 
@@ -245,14 +250,16 @@ final class RouterTest extends TestCase
         $this->assertSame('/posts/42/comments/7', $url);
     }
 
-    public function test_it_ignores_extra_parameters() {
+    public function test_it_ignores_extra_parameters()
+    {
         $router = new Router();
         $router->addRoute('GET', '/users/{id}', 'users#show', name: 'user_show');
         $url = $router->path('user_show', ['id' => 5, 'extra' => 'value']);
         $this->assertSame('/users/5', $url);
     }
 
-    public function test_it_throws_error_on_duplicate_named_routes() {
+    public function test_it_throws_error_on_duplicate_named_routes()
+    {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Named route already exists: users.show');
         $router = new Router();
@@ -260,4 +267,3 @@ final class RouterTest extends TestCase
         $router->addRoute('GET', '/posts/{id}', 'posts#show', name: 'users.show');
     }
 }
-

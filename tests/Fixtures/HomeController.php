@@ -1,10 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace TrackPHP\Tests\Fixtures;
 
 use TrackPHP\Http\Controller;
-use TrackPHP\Http\Response;
 
 final class HomeController extends Controller
 {
@@ -17,4 +17,3 @@ final class HomeController extends Controller
         $this->name = $this->param('name') ?? 'friend';
     }
 }
-

@@ -15,4 +15,3 @@ final class VersionTest extends TestCase
         );
     }
 }
-
